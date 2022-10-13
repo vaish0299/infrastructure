@@ -1,0 +1,133 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: A AWS VPC with 3 subnets.
+Parameters:
+  vpcName:
+    Type: String
+    Default: MyNewVPC
+    Description: Name of VPC
+  vpcCidr:
+    Type: String
+    Default: 10.0.0.0/16
+    AllowedValues:
+    - 10.0.0.0/16
+    - 192.168.0.0/16
+    - 172.31.0.0/16
+    Description: Cidr for the VPC from the user
+  subnetACidr:
+    Type: String
+    Description: Cidr for the SubnetA from the user
+  subnetBCidr:
+    Type: String
+    Description: Cidr for the SubnetB from the user
+  subnetCCidr:
+    Type: String
+    Description: Cidr for the SubnetC from the user
+Resources:
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock:
+        Ref: vpcCidr
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      InstanceTenancy: default
+      Tags:
+      - Key: Name
+        Value:
+          Ref: vpcName
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+  VPCGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId:
+        Ref: VPC
+      InternetGatewayId:
+        Ref: InternetGateway
+  SubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone:
+        Fn::Select:
+        - 0
+        - Fn::GetAZs:
+            Ref: AWS::Region
+      VpcId:
+        Ref: VPC
+      CidrBlock:
+        Ref: subnetACidr
+      MapPublicIpOnLaunch: true
+      Tags:
+      - Key: Name
+        Value: subnet1
+  SubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone:
+        Fn::Select:
+        - 1
+        - Fn::GetAZs:
+            Ref: AWS::Region
+      VpcId:
+        Ref: VPC
+      CidrBlock:
+        Ref: subnetBCidr
+      MapPublicIpOnLaunch: true
+      Tags:
+      - Key: Name
+        Value: subnet2
+  SubnetC:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone:
+        Fn::Select:
+        - 2
+        - Fn::GetAZs:
+            Ref: AWS::Region
+      VpcId:
+        Ref: VPC
+      CidrBlock:
+        Ref: subnetCCidr
+      MapPublicIpOnLaunch: true
+      Tags:
+      - Key: Name
+        Value: subnet3
+  RouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId:
+        Ref: VPC
+      Tags:
+      - Key: Name
+        Value: myRouteTable
+  InternetRoute:
+    Type: AWS::EC2::Route
+    DependsOn: VPCGatewayAttachment
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId:
+        Ref: InternetGateway
+      RouteTableId:
+        Ref: RouteTable
+  SubnetARouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId:
+        Ref: RouteTable
+      SubnetId:
+        Ref: SubnetA
+  SubnetBRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId:
+        Ref: RouteTable
+      SubnetId:
+        Ref: SubnetB
+  SubnetCRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId:
+        Ref: RouteTable
+      SubnetId:
+        Ref: SubnetC
