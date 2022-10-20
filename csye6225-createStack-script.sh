@@ -20,6 +20,8 @@ ParameterKey=vpcCidr,ParameterValue=$4 \
 ParameterKey=subnetACidr,ParameterValue=$5 \
 ParameterKey=subnetBCidr,ParameterValue=$6 \
 ParameterKey=subnetCCidr,ParameterValue=$7 \
+ParameterKey=AMI,ParameterValue=$9 \
+ParameterKey=KeyName,ParameterValue=${10} \
 --on-failure DELETE)
 
 if [ $? -eq 0 ]
@@ -40,4 +42,3 @@ else
     echo $status
     exit
 fi
-
