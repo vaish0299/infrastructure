@@ -1,4 +1,3 @@
----
 AWSTemplateFormatVersion: '2010-09-09'
 Description: A AWS VPC with 3 subnets.
 Parameters:
@@ -23,6 +22,12 @@ Parameters:
   subnetCCidr:
     Type: String
     Description: Cidr for the SubnetC from the user
+  AMI:
+    Description: "AMI for Instance"
+    Type: String
+  KeyName:
+    Description: "Key Name for Instance"
+    Type: String    
 Resources:
   VPC:
     Type: AWS::EC2::VPC
@@ -131,3 +136,49 @@ Resources:
         Ref: RouteTable
       SubnetId:
         Ref: SubnetC
+  application:
+   Type: 'AWS::EC2::SecurityGroup'
+   Properties:
+      GroupDescription: Base Security Group
+      SecurityGroupIngress:
+         - IpProtocol: tcp
+           CidrIp: 0.0.0.0/0
+           FromPort: 22
+           ToPort: 22
+         - IpProtocol: tcp
+           CidrIp: 0.0.0.0/0
+           FromPort: 80
+           ToPort: 80
+         - IpProtocol: tcp
+           CidrIp: 0.0.0.0/0
+           FromPort: 443
+           ToPort: 443
+         - IpProtocol: tcp
+           CidrIp: 0.0.0.0/0
+           FromPort: 8000
+           ToPort: 8000
+      VpcId: !Ref VPC 
+  Ec2Instance: 
+   Type: AWS::EC2::Instance
+   Properties: 
+    ImageId:
+      Ref: AMI
+    KeyName:
+      Ref: KeyName
+    InstanceType: "t2.micro"
+    BlockDeviceMappings: 
+      - DeviceName: "/dev/xvda"
+        Ebs: 
+          VolumeType: "gp2"
+          DeleteOnTermination: "false"
+          VolumeSize: "20"
+    NetworkInterfaces:
+      - AssociatePublicIpAddress: "true"
+        DeleteOnTermination: "true"
+        SubnetId: 
+          Ref: SubnetA
+        DeviceIndex: "0"
+        GroupSet:
+          Fn::Split:
+            - ","
+            - !Ref application        
