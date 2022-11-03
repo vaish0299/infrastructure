@@ -157,7 +157,86 @@ Resources:
            CidrIp: 0.0.0.0/0
            FromPort: 8000
            ToPort: 8000
+<<<<<<< Updated upstream
       VpcId: !Ref VPC 
+=======
+      VpcId: !Ref myVPC 
+  database:
+   Type: 'AWS::EC2::SecurityGroup'
+   Properties:
+      GroupDescription: Database Security Group
+      VpcId: !Ref myVPC
+  SGBaseIngress:
+   Type: 'AWS::EC2::SecurityGroupIngress'
+   Properties:
+      IpProtocol: tcp
+      FromPort: 3306
+      ToPort: 3306
+      SourceSecurityGroupId:
+        Fn::GetAtt:
+        - application
+        - GroupId
+      GroupId:
+        Fn::GetAtt:
+        - database
+        - GroupId
+  S3Bucket:
+   Type: 'AWS::S3::Bucket'
+   Properties:
+      AccessControl: Private
+      BucketName: !Join ['.', [!Select [2, !Split [/, !Ref AWS::StackId ]],  !Ref environment, 'vaishnavi']]
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      LifecycleConfiguration:
+        Rules:
+          - Id: StandardIARule
+            Prefix: standard_is
+            Status: Enabled
+            ExpirationInDays: 365
+            Transitions:
+              - TransitionInDays: 30
+                StorageClass: STANDARD_IA
+      PublicAccessBlockConfiguration:
+          BlockPublicAcls: true
+          BlockPublicPolicy: true
+          IgnorePublicAcls: true
+          RestrictPublicBuckets: true
+
+   DeletionPolicy: Delete
+
+  RDSDBParameterGroup:
+   Type: 'AWS::RDS::DBParameterGroup'
+   Properties:
+      Description: MySQL Parameter Group
+      Family: mysql8.0
+      Parameters:
+        sql_mode: IGNORE_SPACE
+  MyDBSubnetGroup:
+   Type: AWS::RDS::DBSubnetGroup
+   Properties:
+      DBSubnetGroupDescription: Subnet group for Database
+      SubnetIds:
+        - !Ref myPrivateSubnet1
+        - !Ref myPrivateSubnet2
+  MyDB:
+    Type: 'AWS::RDS::DBInstance'
+    Properties:
+      DBName: csye6225
+      DBInstanceIdentifier: csye6225
+      DBInstanceClass: db.t3.micro
+      AllocatedStorage: '50'
+      Engine: MySQL
+      EngineVersion: 8.0.30
+      MultiAZ: 'false'
+      MasterUsername: !Ref DBUsername
+      MasterUserPassword: !Ref DBPassword
+      PubliclyAccessible: 'false'
+      DBSubnetGroupName: !Ref MyDBSubnetGroup
+      VPCSecurityGroups:
+        - !GetAtt database.GroupId
+>>>>>>> Stashed changes
   Ec2Instance: 
    Type: AWS::EC2::Instance
    Properties: 
@@ -179,6 +258,125 @@ Resources:
           Ref: SubnetA
         DeviceIndex: "0"
         GroupSet:
+<<<<<<< Updated upstream
           Fn::Split:
             - ","
             - !Ref application        
+=======
+         - !Ref application
+    IamInstanceProfile: !Ref RootInstanceProfile
+    UserData:
+      Fn::Base64: 
+        !Sub |
+          #!/bin/bash
+          echo export DB_HOST=${MyDB.Endpoint.Address} >> /etc/profile
+          echo export DB_USER=${DBUsername} >> /etc/profile
+          echo export DB_PASSWORD=${DBPassword} >> /etc/profile
+          echo export DB_NAME="csye6225" >> /etc/profile
+          echo export S3_BUCKET_NAME=${S3Bucket} >> /etc/profile
+          echo export DB_HOST=${MyDB.Endpoint.Address} >> /etc/environment
+          echo export DB_USER=${DBUsername} >> /etc/environment
+          echo export DB_PASSWORD=${DBPassword} >> /etc/environment
+          echo export DB_NAME="csye6225" >> /etc/environment
+          echo export S3_BUCKET_NAME=${S3Bucket} >> /etc/environment
+          sudo su root
+          sudo iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-ports 8000
+          sudo pm2 restart all --update-env
+          sudo pm2 save
+          sudo systemctl daemon-reload
+          cd /home/ubuntu/webapp/
+          sudo systemctl restart node-service.service
+  myIAMRole: 
+    Type: "AWS::IAM::Role"
+    Properties: 
+      RoleName: "EC2-CSYE6225"
+      AssumeRolePolicyDocument: 
+        Version: "2012-10-17"
+        Statement: 
+          - 
+            Effect: "Allow"
+            Principal: 
+              Service: 
+                - "ec2.amazonaws.com"
+            Action: 
+              - "sts:AssumeRole"
+      Path: "/"
+  myIAMPolicy:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyName: WebAppS3
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: 
+              - s3:GetObject
+              - s3:PutObject
+              - s3:DeleteObject
+              - s3:PutObjectAcl
+              - s3:ListBucket
+              - s3:ListMultipartUploadParts
+              - s3:AbortMultipartUpload
+              - ec2:RunInstances
+              - ec2:AssociateIamInstanceProfile
+              - ec2:ReplaceIamInstanceProfileAssociation
+              - kms:Decrypt
+              - kms:GenerateDataKey
+              - s3:ListAllMyBuckets
+            Resource: 
+              - !Sub arn:aws:s3:::${S3Bucket}
+              - !Sub arn:aws:s3:::${S3Bucket}/*
+      Roles:
+        - !Ref myIAMRole
+  # myIAMRolePolicy:
+  #   Type: 'AWS::IAM::Policy'
+  #   Properties:
+  #     PolicyName: RoleCreation
+  #     PolicyDocument:
+  #       Version: "2012-10-17"
+  #       Statement:
+  #         - Effect: Allow
+  #           Action: 
+  #             - ec2:RunInstances
+  #             - ec2:AssociateIamInstanceProfile
+  #             - ec2:ReplaceIamInstanceProfileAssociation
+      
+  RootInstanceProfile: 
+    Type: "AWS::IAM::InstanceProfile"
+    Properties: 
+      Path: "/"
+      Roles: 
+        - !Ref myIAMRole
+  myDNSRecord:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId : Z03670693TROUG4SWVG6L
+      Name: demo.vaishnavisai.me
+      ResourceRecords:
+      - !GetAtt Ec2Instance.PublicIp
+      TTL: 60
+      Type: A
+Outputs:
+    VpcId:
+      Description: The VPC ID
+      Value: !Ref myVPC
+    SubnetId1:
+      Description: The Subnet ID 1
+      Value: !Ref mySubnet1
+    SubnetId2:
+      Description: The Subnet ID 2
+      Value: !Ref mySubnet2
+    SubnetId3:
+      Description: The Subnet ID 3
+      Value: !Ref mySubnet3
+    InternetGateway:
+      Description: Internet Gateway
+      Value: !Ref myInternetGateway
+    Route:
+      Description: Route
+      Value: !Ref myRoute
+    RouteTable:
+      Description: Route Table
+      Value: !Ref myRouteTable
+    
+>>>>>>> Stashed changes
