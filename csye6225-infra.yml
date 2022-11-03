@@ -198,7 +198,6 @@ Resources:
       SubnetId: !Ref myPrivateSubnet3
       RouteTableId: !Ref privateRouteTable
   
-
   application:
    Type: 'AWS::EC2::SecurityGroup'
    Properties:
@@ -244,7 +243,7 @@ Resources:
    Type: 'AWS::S3::Bucket'
    Properties:
       AccessControl: Private
-      BucketName: aa-doc-bucket
+      BucketName: !Join ['.', [!Select [2, !Split [/, !Ref AWS::StackId ]],  !Ref environment, 'vaishnavi']]
       BucketEncryption:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
@@ -331,6 +330,7 @@ Resources:
           echo export DB_NAME="csye6225" >> /etc/environment
           echo export S3_BUCKET_NAME=${S3Bucket} >> /etc/environment
           sudo su root
+          sudo iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-ports 8000
           sudo pm2 restart all --update-env
           sudo pm2 save
           sudo systemctl daemon-reload
@@ -397,6 +397,15 @@ Resources:
       Path: "/"
       Roles: 
         - !Ref myIAMRole
+  myDNSRecord:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId : Z03670693TROUG4SWVG6L
+      Name: demo.vaishnavisai.me
+      ResourceRecords:
+      - !GetAtt Ec2Instance.PublicIp
+      TTL: 60
+      Type: A
 Outputs:
     VpcId:
       Description: The VPC ID
