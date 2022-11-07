@@ -275,7 +275,7 @@ Resources:
   MyDBSubnetGroup:
    Type: AWS::RDS::DBSubnetGroup
    Properties:
-      DBSubnetGroupDescription: Subnet group for Aurora Database
+      DBSubnetGroupDescription: Subnet group for Database
       SubnetIds:
         - !Ref myPrivateSubnet1
         - !Ref myPrivateSubnet2
@@ -377,7 +377,7 @@ Resources:
               - !Sub arn:aws:s3:::${S3Bucket}
               - !Sub arn:aws:s3:::${S3Bucket}/*
       Roles:
-        - !Ref myIAMRole
+        - !Ref myIAMRole      
   # myIAMRolePolicy:
   #   Type: 'AWS::IAM::Policy'
   #   Properties:
@@ -390,7 +390,7 @@ Resources:
   #             - ec2:RunInstances
   #             - ec2:AssociateIamInstanceProfile
   #             - ec2:ReplaceIamInstanceProfileAssociation
-      
+
   RootInstanceProfile: 
     Type: "AWS::IAM::InstanceProfile"
     Properties: 
@@ -428,4 +428,3 @@ Outputs:
     RouteTable:
       Description: Route Table
       Value: !Ref myRouteTable
-    
