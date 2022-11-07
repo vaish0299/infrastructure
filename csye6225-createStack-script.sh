@@ -16,13 +16,19 @@ status=$(aws cloudformation create-stack --profile $8 \
 --region $3 \
 --parameters \
 ParameterKey=vpcName,ParameterValue=$2 \
-ParameterKey=vpcCidr,ParameterValue=$4 \
-ParameterKey=subnetACidr,ParameterValue=$5 \
-ParameterKey=subnetBCidr,ParameterValue=$6 \
-ParameterKey=subnetCCidr,ParameterValue=$7 \
+ParameterKey=VpcCidrBlock,ParameterValue=$4 \
+ParameterKey=Subnet1CidrBlock,ParameterValue=$5 \
+ParameterKey=Subnet2CidrBlock,ParameterValue=$6 \
+ParameterKey=Subnet3CidrBlock,ParameterValue=$7 \
+ParameterKey=PrivateSubnet1CidrBlock,ParameterValue=${11} \
+ParameterKey=PrivateSubnet2CidrBlock,ParameterValue=${12} \
+ParameterKey=PrivateSubnet3CidrBlock,ParameterValue=${13} \
+ParameterKey=environment,ParameterValue=${14} \
+ParameterKey=DBUsername,ParameterValue=${15} \
+ParameterKey=DBPassword,ParameterValue=${16} \
 ParameterKey=AMI,ParameterValue=$9 \
 ParameterKey=KeyName,ParameterValue=${10} \
---on-failure DELETE)
+--on-failure DELETE --capabilities CAPABILITY_NAMED_IAM)
 
 if [ $? -eq 0 ]
 then

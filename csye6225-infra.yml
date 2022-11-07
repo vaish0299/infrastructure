@@ -1,141 +1,203 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: A AWS VPC with 3 subnets.
+Description: CSYE 6225 IaC
 Parameters:
   vpcName:
+    Description: "VPC Name"
     Type: String
-    Default: MyNewVPC
-    Description: Name of VPC
-  vpcCidr:
+    Default: "myVPC"
+  VpcCidrBlock:
+    Description: "CIDR block for VPC"
     Type: String
-    Default: 10.0.0.0/16
-    AllowedValues:
-    - 10.0.0.0/16
-    - 192.168.0.0/16
-    - 172.31.0.0/16
-    Description: Cidr for the VPC from the user
-  subnetACidr:
+    Default: "10.0.0.0/16"
+  Subnet1CidrBlock:
+    Description: "CIDR block for Subnet1"
     Type: String
-    Description: Cidr for the SubnetA from the user
-  subnetBCidr:
+    Default: "10.0.1.0/24"
+  Subnet2CidrBlock:
+    Description: "CIDR block for Subnet2"
     Type: String
-    Description: Cidr for the SubnetB from the user
-  subnetCCidr:
+    Default: "10.0.2.0/24"
+  Subnet3CidrBlock:
+    Description: "CIDR block for Subnet3"
     Type: String
-    Description: Cidr for the SubnetC from the user
+    Default: "10.0.3.0/24"
+  PrivateSubnet1CidrBlock:
+    Description: "CIDR block for Subnet3"
+    Type: String
+    Default: "10.0.1.1/24"
+  PrivateSubnet2CidrBlock:
+    Description: "CIDR block for Subnet3"
+    Type: String
+    Default: "10.0.1.2/24"
+  PrivateSubnet3CidrBlock:
+    Description: "CIDR block for Subnet3"
+    Type: String
+    Default: "10.0.1.3/24"
   AMI:
     Description: "AMI for Instance"
     Type: String
   KeyName:
     Description: "Key Name for Instance"
-    Type: String    
+    Type: String
+  environment:
+    Description: "Environment"
+    Type: String
+  DBUsername:
+    NoEcho: 'true'
+    Description: Username for MySQL database access
+    Type: String
+  DBPassword:
+    NoEcho: 'true'
+    Description: Password MySQL database access
+    Type: String
 Resources:
-  VPC:
+  myVPC:
     Type: AWS::EC2::VPC
     Properties:
-      CidrBlock:
-        Ref: vpcCidr
-      EnableDnsSupport: true
-      EnableDnsHostnames: true
-      InstanceTenancy: default
+      CidrBlock: !Ref VpcCidrBlock
+      EnableDnsSupport: 'true'
+      EnableDnsHostnames: 'true'
+      InstanceTenancy: 'default'
       Tags:
       - Key: Name
-        Value:
-          Ref: vpcName
-  InternetGateway:
+        Value: !Ref AWS::StackName
+  mySubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: myVPC
+      CidrBlock: !Ref Subnet1CidrBlock
+      AvailabilityZone: !Select [ 0, !GetAZs ]
+      Tags:
+      - Key: Name
+        Value: !Ref AWS::StackName
+  mySubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: myVPC
+      CidrBlock: !Ref Subnet2CidrBlock
+      AvailabilityZone: !Select [ 1, !GetAZs ]
+      Tags:
+      - Key: Name
+        Value: !Ref AWS::StackName
+  mySubnet3:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: myVPC
+      CidrBlock: !Ref Subnet3CidrBlock
+      AvailabilityZone: !Select [ 2, !GetAZs ]
+      Tags:
+      - Key: Name
+        Value: !Ref AWS::StackName
+  myPrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: myVPC
+      CidrBlock: !Ref PrivateSubnet1CidrBlock
+      AvailabilityZone: !Select [ 0, !GetAZs ]
+      Tags:
+      - Key: Name
+        Value: !Ref AWS::StackName
+      MapPublicIpOnLaunch: 'false'
+  myPrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: myVPC
+      CidrBlock: !Ref PrivateSubnet2CidrBlock
+      AvailabilityZone: !Select [ 1, !GetAZs ]
+      Tags:
+      - Key: Name
+        Value: !Ref AWS::StackName
+      MapPublicIpOnLaunch: 'false'
+  myPrivateSubnet3:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: myVPC
+      CidrBlock: !Ref PrivateSubnet3CidrBlock
+      AvailabilityZone: !Select [ 2, !GetAZs ]
+      Tags:
+      - Key: Name
+        Value: !Ref AWS::StackName
+      MapPublicIpOnLaunch: 'false'
+  myInternetGateway:
     Type: AWS::EC2::InternetGateway
-  VPCGatewayAttachment:
+  
+  myVPCGatewayAttachment:
     Type: AWS::EC2::VPCGatewayAttachment
     Properties:
       VpcId:
-        Ref: VPC
-      InternetGatewayId:
-        Ref: InternetGateway
-  SubnetA:
-    Type: AWS::EC2::Subnet
-    Properties:
-      AvailabilityZone:
-        Fn::Select:
-        - 0
-        - Fn::GetAZs:
-            Ref: AWS::Region
-      VpcId:
-        Ref: VPC
-      CidrBlock:
-        Ref: subnetACidr
-      MapPublicIpOnLaunch: true
-      Tags:
-      - Key: Name
-        Value: subnet1
-  SubnetB:
-    Type: AWS::EC2::Subnet
-    Properties:
-      AvailabilityZone:
-        Fn::Select:
-        - 1
-        - Fn::GetAZs:
-            Ref: AWS::Region
-      VpcId:
-        Ref: VPC
-      CidrBlock:
-        Ref: subnetBCidr
-      MapPublicIpOnLaunch: true
-      Tags:
-      - Key: Name
-        Value: subnet2
-  SubnetC:
-    Type: AWS::EC2::Subnet
-    Properties:
-      AvailabilityZone:
-        Fn::Select:
-        - 2
-        - Fn::GetAZs:
-            Ref: AWS::Region
-      VpcId:
-        Ref: VPC
-      CidrBlock:
-        Ref: subnetCCidr
-      MapPublicIpOnLaunch: true
-      Tags:
-      - Key: Name
-        Value: subnet3
-  RouteTable:
+        Ref: myVPC
+      InternetGatewayId: !Ref myInternetGateway
+
+  myRouteTable:
+    DependsOn: myVPCGatewayAttachment
     Type: AWS::EC2::RouteTable
     Properties:
-      VpcId:
-        Ref: VPC
+      VpcId: !Ref myVPC
       Tags:
       - Key: Name
-        Value: myRouteTable
-  InternetRoute:
+        Value: !Ref AWS::StackName
+  privateRouteTable:
+    DependsOn: myVPCGatewayAttachment
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref myVPC
+      Tags:
+      - Key: Name
+        Value: !Ref AWS::StackName
+  # privateRoute:
+  #   Type: AWS::EC2::Route
+  #   DependsOn: myVPCGatewayAttachment
+  #   Properties:
+  #      RouteTableId:
+  #        Ref: privateRouteTable
+  #      GatewayId:
+  #        Ref: myInternetGateway
+  myRoute:
     Type: AWS::EC2::Route
-    DependsOn: VPCGatewayAttachment
+    DependsOn: myVPCGatewayAttachment
     Properties:
-      DestinationCidrBlock: 0.0.0.0/0
-      GatewayId:
-        Ref: InternetGateway
-      RouteTableId:
-        Ref: RouteTable
-  SubnetARouteTableAssociation:
+       RouteTableId:
+         Ref: myRouteTable
+       DestinationCidrBlock: 0.0.0.0/0
+       GatewayId:
+         Ref: myInternetGateway
+  mySubnetARouteTableAssociation1:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
-      RouteTableId:
-        Ref: RouteTable
-      SubnetId:
-        Ref: SubnetA
-  SubnetBRouteTableAssociation:
+      SubnetId: !Ref mySubnet1
+      RouteTableId: !Ref myRouteTable
+  mySubnetARouteTableAssociation2:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
-      RouteTableId:
-        Ref: RouteTable
-      SubnetId:
-        Ref: SubnetB
-  SubnetCRouteTableAssociation:
+      SubnetId: !Ref mySubnet2
+      RouteTableId: !Ref myRouteTable
+  mySubnetARouteTableAssociation3:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
-      RouteTableId:
-        Ref: RouteTable
-      SubnetId:
-        Ref: SubnetC
+      SubnetId: !Ref mySubnet3
+      RouteTableId: !Ref myRouteTable
+  myPrivateSubnetARouteTableAssociation1:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref myPrivateSubnet1
+      RouteTableId: !Ref privateRouteTable
+  myPrivateSubnetARouteTableAssociation2:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref myPrivateSubnet2
+      RouteTableId: !Ref privateRouteTable
+  myPrivateSubnetARouteTableAssociation3:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref myPrivateSubnet3
+      RouteTableId: !Ref privateRouteTable
+  
   application:
    Type: 'AWS::EC2::SecurityGroup'
    Properties:
@@ -236,10 +298,8 @@ Resources:
   Ec2Instance: 
    Type: AWS::EC2::Instance
    Properties: 
-    ImageId:
-      Ref: AMI
-    KeyName:
-      Ref: KeyName
+    ImageId: !Ref AMI
+    KeyName: !Ref KeyName
     InstanceType: "t2.micro"
     BlockDeviceMappings: 
       - DeviceName: "/dev/xvda"
@@ -250,8 +310,7 @@ Resources:
     NetworkInterfaces:
       - AssociatePublicIpAddress: "true"
         DeleteOnTermination: "true"
-        SubnetId: 
-          Ref: SubnetA
+        SubnetId: !Ref mySubnet1
         DeviceIndex: "0"
         GroupSet:
          - !Ref application
@@ -319,6 +378,19 @@ Resources:
               - !Sub arn:aws:s3:::${S3Bucket}/*
       Roles:
         - !Ref myIAMRole      
+  # myIAMRolePolicy:
+  #   Type: 'AWS::IAM::Policy'
+  #   Properties:
+  #     PolicyName: RoleCreation
+  #     PolicyDocument:
+  #       Version: "2012-10-17"
+  #       Statement:
+  #         - Effect: Allow
+  #           Action: 
+  #             - ec2:RunInstances
+  #             - ec2:AssociateIamInstanceProfile
+  #             - ec2:ReplaceIamInstanceProfileAssociation
+
   RootInstanceProfile: 
     Type: "AWS::IAM::InstanceProfile"
     Properties: 
@@ -356,4 +428,3 @@ Outputs:
     RouteTable:
       Description: Route Table
       Value: !Ref myRouteTable
-    
