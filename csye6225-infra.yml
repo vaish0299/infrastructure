@@ -157,9 +157,6 @@ Resources:
            CidrIp: 0.0.0.0/0
            FromPort: 8000
            ToPort: 8000
-<<<<<<< Updated upstream
-      VpcId: !Ref VPC 
-=======
       VpcId: !Ref myVPC 
   database:
    Type: 'AWS::EC2::SecurityGroup'
@@ -236,7 +233,6 @@ Resources:
       DBSubnetGroupName: !Ref MyDBSubnetGroup
       VPCSecurityGroups:
         - !GetAtt database.GroupId
->>>>>>> Stashed changes
   Ec2Instance: 
    Type: AWS::EC2::Instance
    Properties: 
@@ -258,11 +254,6 @@ Resources:
           Ref: SubnetA
         DeviceIndex: "0"
         GroupSet:
-<<<<<<< Updated upstream
-          Fn::Split:
-            - ","
-            - !Ref application        
-=======
          - !Ref application
     IamInstanceProfile: !Ref RootInstanceProfile
     UserData:
@@ -327,20 +318,7 @@ Resources:
               - !Sub arn:aws:s3:::${S3Bucket}
               - !Sub arn:aws:s3:::${S3Bucket}/*
       Roles:
-        - !Ref myIAMRole
-  # myIAMRolePolicy:
-  #   Type: 'AWS::IAM::Policy'
-  #   Properties:
-  #     PolicyName: RoleCreation
-  #     PolicyDocument:
-  #       Version: "2012-10-17"
-  #       Statement:
-  #         - Effect: Allow
-  #           Action: 
-  #             - ec2:RunInstances
-  #             - ec2:AssociateIamInstanceProfile
-  #             - ec2:ReplaceIamInstanceProfileAssociation
-      
+        - !Ref myIAMRole      
   RootInstanceProfile: 
     Type: "AWS::IAM::InstanceProfile"
     Properties: 
@@ -379,4 +357,3 @@ Outputs:
       Description: Route Table
       Value: !Ref myRouteTable
     
->>>>>>> Stashed changes
