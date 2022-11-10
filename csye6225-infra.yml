@@ -377,7 +377,10 @@ Resources:
               - !Sub arn:aws:s3:::${S3Bucket}
               - !Sub arn:aws:s3:::${S3Bucket}/*
       Roles:
-        - !Ref myIAMRole      
+        - !Ref myIAMRole  
+      # ManagedPolicyArns:
+      # - arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy
+      # - arn:aws:iam::aws:policy/CloudWatchAgentAdminPolicy    
   # myIAMRolePolicy:
   #   Type: 'AWS::IAM::Policy'
   #   Properties:
@@ -397,6 +400,21 @@ Resources:
       Path: "/"
       Roles: 
         - !Ref myIAMRole
+  WebAppCloudWatchLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties: 
+      LogGroupName: csye6225
+      RetentionInDays: 1
+      # Tags:
+      #   - Key: Environment
+      #     Value: !Ref EnvironmentName
+  WebAppCloudWatchLogStream:
+    Type: AWS::Logs::LogStream
+    Properties: 
+      LogGroupName: csye6225
+      LogStreamName: webapp
+    DependsOn:
+    - WebAppCloudWatchLogGroup
   myDNSRecord:
     Type: AWS::Route53::RecordSet
     Properties:
