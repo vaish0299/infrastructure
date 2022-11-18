@@ -46,10 +46,17 @@ Parameters:
     NoEcho: 'true'
     Description: Username for MySQL database access
     Type: String
+  DomainName:
+    Type: String
+    Default : "demo.vaishnavisai.me"
   DBPassword:
     NoEcho: 'true'
     Description: Password MySQL database access
     Type: String
+  dynamoDBTable:
+    Description: dynamoDBTableName
+    Type: String
+    Default: userVerification
 Resources:
   myVPC:
     Type: AWS::EC2::VPC
@@ -329,11 +336,12 @@ Resources:
           echo export DB_PASSWORD=${DBPassword} >> /etc/environment
           echo export DB_NAME="csye6225" >> /etc/environment
           echo export S3_BUCKET_NAME=${S3Bucket} >> /etc/environment
+          echo export DOMAIN_NAME=demo.vaishnavisai.me >> /etc/environment
           sudo su root
           sudo iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-ports 8000
           sudo pm2 restart all --update-env
           sudo pm2 save
-          sudo systemctl daemon-reload
+          sudo systemctl daemon-reload 
           cd /home/ubuntu/webapp/
           sudo systemctl restart node-service.service
   myIAMRole: 
@@ -350,10 +358,21 @@ Resources:
                 - "ec2.amazonaws.com"
             Action: 
               - "sts:AssumeRole"
+      Policies:
+      - PolicyName: snsPublishAccess
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - sns:Publish
+            Resource:
+            - Ref: WebAPPSNS
       Path: "/"
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy
         - arn:aws:iam::aws:policy/CloudWatchAgentAdminPolicy
+        - arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess
   myIAMPolicy:
     Type: 'AWS::IAM::Policy'
     Properties:
@@ -381,9 +400,11 @@ Resources:
               - !Sub arn:aws:s3:::${S3Bucket}/*
       Roles:
         - !Ref myIAMRole  
+ 
       # ManagedPolicyArns:
       # - arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy
       # - arn:aws:iam::aws:policy/CloudWatchAgentAdminPolicy    
+
   # myIAMRolePolicy:
   #   Type: 'AWS::IAM::Policy'
   #   Properties:
@@ -406,7 +427,7 @@ Resources:
   WebAppCloudWatchLogGroup:
     Type: AWS::Logs::LogGroup
     Properties: 
-      LogGroupName: csye6225
+      LogGroupName: csye622567
       RetentionInDays: 1
       # Tags:
       #   - Key: Environment
@@ -427,6 +448,130 @@ Resources:
       - !GetAtt Ec2Instance.PublicIp
       TTL: 60
       Type: A
+  # WebAPPSNS:
+  #   Type: AWS::SNS::Topic
+  #   Properties:
+  #     DisplayName: My First WebApp SNS
+  #     Subscription:
+  #       - Endpoint:
+  #         Fn::GetAtt:
+  #           - EmailLambda.Arn
+  #         Protocol: lambda
+  #     TopicName: WebAppSNS
+  #   DependsOn:
+  #   - EmailLambda
+  # WebAPPSNS:
+  # Type: AWS::SNS::Topic
+  # Properties:
+  #   DisplayName: My First WebApp SNS
+  #   Subscription:
+  #     - Endpoint:
+  #         Fn::GetAtt:
+  #           - EmailLambda.Arn
+  #       Protocol: lambda
+  #   TopicName: WebAppSNS
+  # MySNSTopic:
+  # Type: AWS::SNS::Topic
+  # Properties:
+  #   Subscription:
+  #     - Endpoint:
+  #         Fn::GetAtt:
+  #           - "MyQueue1"
+  #           - "Arn"
+  #       Protocol: "sqs"
+  #     - Endpoint:
+  #         Fn::GetAtt:
+  #           - "MyQueue2"
+  #           - "Arn"
+  #       Protocol: "sqs"
+  #   TopicName: "SampleTopic"
+  WebAPPSNS:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: My First WebApp SNS
+      Subscription:
+      - Endpoint:
+          Fn::GetAtt: 
+          - EmailLambda
+          - Arn
+        Protocol: lambda
+      TopicName: WebAppSNS
+    DependsOn:
+    - EmailLambda
+  EmailLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket:
+          Fn::Sub: vaishnavi-lambda-bucket
+        S3Key: lambda.zip
+      Description: Emails the TTL link to the user for account verification
+      Environment:
+        Variables:
+          domainName: !Ref DomainName
+      FunctionName: handler
+      Handler: index.handler
+      PackageType: Zip
+      Role:
+        Fn::GetAtt: EmailLambdaFunctionRole.Arn
+      Runtime: nodejs14.x
+    DependsOn: EmailLambdaFunctionRole
+  EmailLambdaFunctionRole: 
+    Type: "AWS::IAM::Role"
+    Properties: 
+      RoleName: "EC2-CS-lam"
+      AssumeRolePolicyDocument: 
+        Version: "2012-10-17"
+        Statement: 
+          - 
+            Effect: "Allow"
+            Principal: 
+              Service: 
+                - "lambda.amazonaws.com"
+            Action: 
+              - "sts:AssumeRole"
+      Path: "/"
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+           
+  # EmailLambdaFunctionRole:
+  #   Type: AWS::IAM::Role
+  #   Properties:
+  #     Description: iam role for email lambda function
+  #     ManagedPolicyArns:
+  #     - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+  EmailLambdaInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: handler
+      Principal: sns.amazonaws.com
+    DependsOn: 
+    - EmailLambda
+  DynamoDBTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+      - AttributeName: email
+        AttributeType: S
+      - AttributeName: token
+        AttributeType: S
+      BillingMode: PAY_PER_REQUEST
+      KeySchema:
+      - AttributeName: email
+        KeyType: HASH
+      - AttributeName: token
+        KeyType: RANGE
+      TableName:
+        Ref: dynamoDBTable
+      # Tags:
+      # - Key: Name
+      #   Value:
+      #     Ref: Name
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
 Outputs:
     VpcId:
       Description: The VPC ID
