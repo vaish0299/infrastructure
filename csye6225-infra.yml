@@ -337,6 +337,7 @@ Resources:
           echo export DB_NAME="csye6225" >> /etc/environment
           echo export S3_BUCKET_NAME=${S3Bucket} >> /etc/environment
           echo export DOMAIN_NAME=demo.vaishnavisai.me >> /etc/environment
+          echo export SNS_TOPIC_NAME=${WebAPPSNS} >> /etc/environment
           sudo su root
           sudo iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-ports 8000
           sudo pm2 restart all --update-env
@@ -401,6 +402,7 @@ Resources:
       Roles:
         - !Ref myIAMRole  
  
+<<<<<<< HEAD
       # ManagedPolicyArns:
       # - arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy
       # - arn:aws:iam::aws:policy/CloudWatchAgentAdminPolicy    
@@ -417,6 +419,8 @@ Resources:
   #             - ec2:RunInstances
   #             - ec2:AssociateIamInstanceProfile
   #             - ec2:ReplaceIamInstanceProfileAssociation
+=======
+>>>>>>> 6fc2ea6 (commit)
 
   RootInstanceProfile: 
     Type: "AWS::IAM::InstanceProfile"
@@ -427,7 +431,7 @@ Resources:
   WebAppCloudWatchLogGroup:
     Type: AWS::Logs::LogGroup
     Properties: 
-      LogGroupName: csye622567
+      LogGroupName: csye6225-1
       RetentionInDays: 1
       # Tags:
       #   - Key: Environment
@@ -435,8 +439,13 @@ Resources:
   WebAppCloudWatchLogStream:
     Type: AWS::Logs::LogStream
     Properties: 
+<<<<<<< HEAD
       LogGroupName: csye6225
       LogStreamName: webapp
+=======
+      LogGroupName: csye6225-1
+      LogStreamName: webapp-1
+>>>>>>> 6fc2ea6 (commit)
     DependsOn:
     - WebAppCloudWatchLogGroup
   myDNSRecord:
@@ -503,7 +512,7 @@ Resources:
     Properties:
       Code:
         S3Bucket:
-          Fn::Sub: vaishnavi-lambda-bucket
+          Fn::Sub: vaishnavi-lambda-handler
         S3Key: lambda.zip
       Description: Emails the TTL link to the user for account verification
       Environment:
@@ -514,7 +523,7 @@ Resources:
       PackageType: Zip
       Role:
         Fn::GetAtt: EmailLambdaFunctionRole.Arn
-      Runtime: nodejs14.x
+      Runtime: nodejs16.x
     DependsOn: EmailLambdaFunctionRole
   EmailLambdaFunctionRole: 
     Type: "AWS::IAM::Role"

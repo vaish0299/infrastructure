@@ -26,6 +26,7 @@ ParameterKey=PrivateSubnet3CidrBlock,ParameterValue=${13} \
 ParameterKey=environment,ParameterValue=${14} \
 ParameterKey=DBUsername,ParameterValue=${15} \
 ParameterKey=DBPassword,ParameterValue=${16} \
+ParameterKey=DomainName,ParameterValue=${17} \
 ParameterKey=AMI,ParameterValue=$9 \
 ParameterKey=KeyName,ParameterValue=${10} \
 --on-failure DELETE --capabilities CAPABILITY_NAMED_IAM)
