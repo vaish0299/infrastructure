@@ -49,6 +49,7 @@ Parameters:
   DomainName:
     Type: String
     Default : "demo.vaishnavisai.me"
+
   AccountId:
     Description: organization account id
     Type: String
@@ -357,6 +358,7 @@ Resources:
       DBSubnetGroupName: !Ref MyDBSubnetGroup
       VPCSecurityGroups:
         - !GetAtt database.GroupId
+
   # Ec2Instance: 
   #  Type: AWS::EC2::Instance
   #  Properties: 
@@ -767,6 +769,49 @@ Resources:
   #             - ec2:RunInstances
   #             - ec2:AssociateIamInstanceProfile
   #             - ec2:ReplaceIamInstanceProfileAssociation
+  Ec2Instance: 
+   Type: AWS::EC2::Instance
+   Properties: 
+    ImageId: !Ref AMI
+    KeyName: !Ref KeyName
+    InstanceType: "t2.micro"
+    BlockDeviceMappings: 
+      - DeviceName: "/dev/xvda"
+        Ebs: 
+          VolumeType: "gp2"
+          DeleteOnTermination: "false"
+          VolumeSize: "20"
+    NetworkInterfaces:
+      - AssociatePublicIpAddress: "true"
+        DeleteOnTermination: "true"
+        SubnetId: !Ref mySubnet1
+        DeviceIndex: "0"
+        GroupSet:
+         - !Ref application
+    IamInstanceProfile: !Ref RootInstanceProfile
+    UserData:
+      Fn::Base64: 
+        !Sub |
+          #!/bin/bash
+          echo export DB_HOST=${MyDB.Endpoint.Address} >> /etc/profile
+          echo export DB_USER=${DBUsername} >> /etc/profile
+          echo export DB_PASSWORD=${DBPassword} >> /etc/profile
+          echo export DB_NAME="csye6225" >> /etc/profile
+          echo export S3_BUCKET_NAME=${S3Bucket} >> /etc/profile
+          echo export DB_HOST=${MyDB.Endpoint.Address} >> /etc/environment
+          echo export DB_USER=${DBUsername} >> /etc/environment
+          echo export DB_PASSWORD=${DBPassword} >> /etc/environment
+          echo export DB_NAME="csye6225" >> /etc/environment
+          echo export S3_BUCKET_NAME=${S3Bucket} >> /etc/environment
+          echo export DOMAIN_NAME=demo.vaishnavisai.me >> /etc/environment
+          sudo su root
+          sudo iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-ports 8000
+          sudo pm2 restart all --update-env
+          sudo pm2 save
+          sudo systemctl daemon-reload 
+          cd /home/ubuntu/webapp/
+          sudo systemctl restart node-service.service
+
   myIAMRole: 
     Type: "AWS::IAM::Role"
     Properties: 
@@ -824,6 +869,26 @@ Resources:
       Roles:
         - !Ref myIAMRole  
  
+
+
+      # ManagedPolicyArns:
+      # - arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy
+      # - arn:aws:iam::aws:policy/CloudWatchAgentAdminPolicy    
+
+  # myIAMRolePolicy:
+  #   Type: 'AWS::IAM::Policy'
+  #   Properties:
+  #     PolicyName: RoleCreation
+  #     PolicyDocument:
+  #       Version: "2012-10-17"
+  #       Statement:
+  #         - Effect: Allow
+  #           Action: 
+  #             - ec2:RunInstances
+  #             - ec2:AssociateIamInstanceProfile
+  #             - ec2:ReplaceIamInstanceProfileAssociation
+
+
   RootInstanceProfile: 
     Type: "AWS::IAM::InstanceProfile"
     Properties: 
@@ -833,7 +898,7 @@ Resources:
   WebAppCloudWatchLogGroup:
     Type: AWS::Logs::LogGroup
     Properties: 
-      LogGroupName: csye6225
+      LogGroupName: csye622567
       RetentionInDays: 1
       # Tags:
       #   - Key: Environment
@@ -854,6 +919,52 @@ Resources:
   #     - !GetAtt Ec2Instance.PublicIp
   #     TTL: 60
   #     Type: A
+  WebAPPSNS:
+    Type: AWS::SNS::Topic
+    Properties:
+      HostedZoneId : Z03670693TROUG4SWVG6L
+      Name: demo.vaishnavisai.me
+      ResourceRecords:
+      - !GetAtt Ec2Instance.PublicIp
+      TTL: 60
+      Type: A
+  # WebAPPSNS:
+  #   Type: AWS::SNS::Topic
+  #   Properties:
+  #     DisplayName: My First WebApp SNS
+  #     Subscription:
+  #       - Endpoint:
+  #         Fn::GetAtt:
+  #           - EmailLambda.Arn
+  #         Protocol: lambda
+  #     TopicName: WebAppSNS
+  #   DependsOn:
+  #   - EmailLambda
+  # WebAPPSNS:
+  # Type: AWS::SNS::Topic
+  # Properties:
+  #   DisplayName: My First WebApp SNS
+  #   Subscription:
+  #     - Endpoint:
+  #         Fn::GetAtt:
+  #           - EmailLambda.Arn
+  #       Protocol: lambda
+  #   TopicName: WebAppSNS
+  # MySNSTopic:
+  # Type: AWS::SNS::Topic
+  # Properties:
+  #   Subscription:
+  #     - Endpoint:
+  #         Fn::GetAtt:
+  #           - "MyQueue1"
+  #           - "Arn"
+  #       Protocol: "sqs"
+  #     - Endpoint:
+  #         Fn::GetAtt:
+  #           - "MyQueue2"
+  #           - "Arn"
+  #       Protocol: "sqs"
+  #   TopicName: "SampleTopic"
   WebAPPSNS:
     Type: AWS::SNS::Topic
     Properties:
