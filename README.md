@@ -24,8 +24,3 @@
 * SETUP OF AWS CLI:
 * Install the AWS CLI
 * Set up the profiles 
-
-* command to import the ssl cert to aws certificate manage through cli
-aws acm --profile=demo import-certificate --debug --certificate fileb:////Users/vaishnavisai/Downloads/demo_vaishnavisai_me (1)/demo_vaishnavisai_me.crt
---certificate-chain fileb:////Users/vaishnavisai/Downloads/demo_vaishnavisai_me (1)/demo_vaishnavisai_me.ca-bundle
---private-key fileb:////Users/vaishnavisai/demo.vaishnavisai.me.key
